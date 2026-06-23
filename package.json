@@ -1,0 +1,17 @@
+{
+  "name": "mqtt-sensor-dashboard",
+  "version": "1.0.0",
+  "description": "Simple MQTT sensor dashboard with embedded broker",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "sim": "node simulator.js"
+  },
+  "dependencies": {
+    "aedes": "^0.51.0",
+    "express": "^4.18.2",
+    "mqtt": "^5.3.0",
+    "websocket-stream": "^5.5.2",
+    "ws": "^8.14.2"
+  }
+}

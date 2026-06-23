@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MQTT Sensor Dashboard</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>🌡️ MQTT Sensor Dashboard</h1>
+      <div class="status" id="status">🔴 Disconnected</div>
+    </header>
+
+    <section class="controls">
+      <label>
+        Broker URL
+        <input type="text" id="brokerUrl" placeholder="mqtt://broker.example.com" />
+      </label>
+      <label>
+        Port
+        <input type="text" id="brokerPort" placeholder="1883" />
+      </label>
+      <label>
+        Username
+        <input type="text" id="brokerUsername" placeholder="optional" />
+      </label>
+      <label>
+        Password
+        <input type="password" id="brokerPassword" placeholder="optional" />
+      </label>
+      <div class="button-group">
+        <button id="connectBtn">Connect</button>
+        <button id="disconnectBtn">Disconnect</button>
+      </div>
+    </section>
+
+    <section class="topics">
+      <div class="topics-header">
+        <h2>Subscribed Topics</h2>
+      </div>
+      <div class="topic-editor">
+        <input type="text" id="newTopic" placeholder="e.g. /iot/esp32/+/telemetry" />
+        <button id="addTopicBtn">Add Topic</button>
+      </div>
+      <div class="topic-tags" id="topicTags"></div>
+    </section>
+
+    <section class="grid" id="sensorGrid">
+      <!-- Sensor cards injected here -->
+    </section>
+
+    <section class="log">
+      <h2>Live MQTT Log</h2>
+      <ul id="mqttLog"></ul>
+    </section>
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>
