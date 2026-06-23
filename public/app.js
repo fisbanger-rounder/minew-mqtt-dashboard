@@ -3,6 +3,16 @@ const sensors = new Map();
 let evtSource = null;
 let isConnected = false;
 
+// ── Graph State ─────────────────────────────────────────────
+const GRAPH_WINDOW_MS = 10 * 60 * 1000; // 10 minutes
+const sensorHistory = new Map(); // sensorId -> { metricKey -> [{t, v}] }
+const sensorCharts = new Map();  // sensorId -> Chart instance
+
+const CHART_COLORS = [
+  '#38bdf8', '#a78bfa', '#f87171', '#34d399', '#fbbf24',
+  '#fb923c', '#e879f9', '#22d3ee', '#4ade80', '#f472b6',
+];
+
 const els = {
   status: document.getElementById('status'),
   brokerUrl: document.getElementById('brokerUrl'),
@@ -20,6 +30,8 @@ const els = {
   topicTags: document.getElementById('topicTags'),
   grid: document.getElementById('sensorGrid'),
   log: document.getElementById('mqttLog'),
+  graphsGrid: document.getElementById('graphsGrid'),
+  graphsSection: document.getElementById('graphsSection'),
 };
 
 // ── Helpers ─────────────────────────────────────────────────
@@ -50,7 +62,7 @@ function log(topic, payload, ts) {
 }
 
 function loadDefaultTopics() {
-  const defaults = ['/iot/esp32/+/telemetry'];
+  const defaults = [''];
   defaults.forEach(t => addTopic(t));
 }
 
@@ -72,6 +84,7 @@ function renderTopics() {
 
 let subscribedTopics = new Set();
 let pendingTopics = null;
+let isSensorOnlyView = false;
 
 function addTopic(topic) {
   topic = topic.trim();
@@ -84,9 +97,22 @@ function addTopic(topic) {
 function removeTopic(topic) {
   if (!subscribedTopics.has(topic)) return;
   subscribedTopics.delete(topic);
+  clearAllSensors();
   renderTopics();
   syncTopics();
   updateCompactView();
+}
+
+function clearAllSensors() {
+  // Remove sensor cards
+  sensors.forEach((data) => data.el.remove());
+  sensors.clear();
+
+  // Remove graph cards and destroy chart instances
+  sensorCharts.forEach((chart) => chart.destroy());
+  sensorCharts.clear();
+  sensorHistory.clear();
+  els.graphsGrid.innerHTML = '';
 }
 
 async function syncTopics() {
@@ -189,6 +215,159 @@ function updateMetric(sensorId, metricKey, value) {
 
   const ls = document.getElementById(`ls-${sensorId}`);
   ls.textContent = `Last seen: ${nowTime()}`;
+
+  // ── Push to graph history ──
+  if (!Number.isNaN(num)) {
+    pushGraphData(sensorId, metricKey, num);
+  }
+}
+
+// ── Graph Functions ─────────────────────────────────────────
+function pushGraphData(sensorId, metricKey, value) {
+  if (!sensorHistory.has(sensorId)) {
+    sensorHistory.set(sensorId, new Map());
+  }
+  const metricsMap = sensorHistory.get(sensorId);
+  if (!metricsMap.has(metricKey)) {
+    metricsMap.set(metricKey, []);
+  }
+  const arr = metricsMap.get(metricKey);
+  const now = Date.now();
+  arr.push({ t: now, v: value });
+
+  // Trim data older than 10 minutes
+  const cutoff = now - GRAPH_WINDOW_MS;
+  while (arr.length > 0 && arr[0].t < cutoff) {
+    arr.shift();
+  }
+
+  updateGraph(sensorId);
+}
+
+function getOrCreateGraphCard(sensorId) {
+  const canvasId = `chart-${sensorId}`;
+  let canvas = document.getElementById(canvasId);
+  if (canvas) return canvas;
+
+  const card = document.createElement('div');
+  card.className = 'graph-card';
+  card.id = `graph-card-${sensorId}`;
+  card.innerHTML = `
+    <div class="graph-card-header">
+      <h3>Sensor</h3>
+      <span class="graph-sensor-id">${sensorId}</span>
+    </div>
+    <canvas id="${canvasId}"></canvas>
+  `;
+  els.graphsGrid.appendChild(card);
+  return document.getElementById(canvasId);
+}
+
+function updateGraph(sensorId) {
+  const metricsMap = sensorHistory.get(sensorId);
+  if (!metricsMap || metricsMap.size === 0) return;
+
+  const canvas = getOrCreateGraphCard(sensorId);
+
+  // Build datasets
+  const datasets = [];
+  let colorIdx = 0;
+  for (const [metricKey, points] of metricsMap.entries()) {
+    const color = CHART_COLORS[colorIdx % CHART_COLORS.length];
+    datasets.push({
+      label: `${metricKey} (${guessUnit(metricKey) || '-'})`,
+      data: points.map(p => ({ x: p.t, y: p.v })),
+      borderColor: color,
+      backgroundColor: color + '22',
+      borderWidth: 2,
+      pointRadius: 0,
+      pointHoverRadius: 4,
+      tension: 0.3,
+      fill: true,
+    });
+    colorIdx++;
+  }
+
+  const now = Date.now();
+  const xMin = now - GRAPH_WINDOW_MS;
+  const xMax = now;
+
+  if (sensorCharts.has(sensorId)) {
+    // Update existing chart
+    const chart = sensorCharts.get(sensorId);
+    chart.data.datasets = datasets;
+    chart.options.scales.x.min = xMin;
+    chart.options.scales.x.max = xMax;
+    chart.update('none'); // skip animations for perf
+  } else {
+    // Create new chart
+    const ctx = canvas.getContext('2d');
+    const chart = new Chart(ctx, {
+      type: 'line',
+      data: { datasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: { duration: 0 },
+        interaction: {
+          mode: 'nearest',
+          intersect: true,
+        },
+        plugins: {
+          legend: {
+            position: 'top',
+            labels: {
+              color: '#94a3b8',
+              font: { size: 11 },
+              boxWidth: 14,
+              padding: 10,
+            },
+          },
+          tooltip: {
+            backgroundColor: '#1e293bdd',
+            titleColor: '#f1f5f9',
+            bodyColor: '#94a3b8',
+            borderColor: '#334155',
+            borderWidth: 1,
+            callbacks: {
+              title(items) {
+                if (!items.length) return '';
+                return new Date(items[0].parsed.x).toLocaleTimeString();
+              },
+            },
+          },
+        },
+        scales: {
+          x: {
+            type: 'linear',
+            min: xMin,
+            max: xMax,
+            ticks: {
+              color: '#94a3b8',
+              font: { size: 10 },
+              maxTicksLimit: 6,
+              callback(val) {
+                return new Date(val).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+              },
+            },
+            grid: {
+              color: '#33415544',
+            },
+          },
+          y: {
+            ticks: {
+              color: '#94a3b8',
+              font: { size: 10 },
+            },
+            grid: {
+              color: '#33415544',
+            },
+          },
+        },
+      },
+    });
+    sensorCharts.set(sensorId, chart);
+  }
 }
 
 function extractSensorId(topic) {
@@ -268,23 +447,24 @@ function isConfigComplete() {
 
 function updateCompactView() {
   const complete = isConfigComplete();
-  els.brokerSection.hidden = complete;
-  els.topicsSection.hidden = complete;
-  els.logSection.hidden = complete;
   els.toggleViewBtn.hidden = !complete;
-  els.toggleViewBtn.textContent = els.brokerSection.hidden
+
+  if (!complete) {
+    isSensorOnlyView = false;
+  }
+
+  els.brokerSection.hidden = isSensorOnlyView;
+  els.topicsSection.hidden = isSensorOnlyView;
+  els.logSection.hidden = isSensorOnlyView;
+  // Keep graphs visible in sensor-only view
+  els.toggleViewBtn.textContent = isSensorOnlyView
     ? 'Show full dashboard'
     : 'Show sensor-only view';
 }
 
 function toggleViewMode() {
-  const compact = !!els.brokerSection.hidden;
-  els.brokerSection.hidden = !compact;
-  els.topicsSection.hidden = !compact;
-  els.logSection.hidden = !compact;
-  els.toggleViewBtn.textContent = compact
-    ? 'Show sensor-only view'
-    : 'Show full dashboard';
+  isSensorOnlyView = !isSensorOnlyView;
+  updateCompactView();
 }
 
 async function loadBrokerConfig() {
