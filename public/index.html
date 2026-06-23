@@ -10,10 +10,13 @@
   <div class="container">
     <header>
       <h1>🌡️ MQTT Sensor Dashboard</h1>
-      <div class="status" id="status">🔴 Disconnected</div>
+      <div class="header-actions">
+        <div class="status" id="status">🔴 Disconnected</div>
+        <button id="toggleViewBtn" class="compact-toggle" hidden>Show sensor-only view</button>
+      </div>
     </header>
 
-    <section class="controls">
+    <section class="controls" id="brokerSection">
       <label>
         Broker URL
         <input type="text" id="brokerUrl" placeholder="mqtt://broker.example.com" />
@@ -36,7 +39,7 @@
       </div>
     </section>
 
-    <section class="topics">
+    <section class="topics" id="topicsSection">
       <div class="topics-header">
         <h2>Subscribed Topics</h2>
       </div>
@@ -51,7 +54,7 @@
       <!-- Sensor cards injected here -->
     </section>
 
-    <section class="log">
+    <section class="log" id="logSection">
       <h2>Live MQTT Log</h2>
       <ul id="mqttLog"></ul>
     </section>

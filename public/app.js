@@ -11,6 +11,10 @@ const els = {
   brokerPassword: document.getElementById('brokerPassword'),
   connectBtn: document.getElementById('connectBtn'),
   disconnectBtn: document.getElementById('disconnectBtn'),
+  brokerSection: document.getElementById('brokerSection'),
+  topicsSection: document.getElementById('topicsSection'),
+  logSection: document.getElementById('logSection'),
+  toggleViewBtn: document.getElementById('toggleViewBtn'),
   newTopic: document.getElementById('newTopic'),
   addTopicBtn: document.getElementById('addTopicBtn'),
   topicTags: document.getElementById('topicTags'),
@@ -82,6 +86,7 @@ function removeTopic(topic) {
   subscribedTopics.delete(topic);
   renderTopics();
   syncTopics();
+  updateCompactView();
 }
 
 async function syncTopics() {
@@ -237,6 +242,7 @@ function connectSSE() {
       els.status.textContent = text;
       isConnected = msg.status === 'connected';
       updateBrokerButtons();
+      updateCompactView();
     } else if (msg.type === 'message') {
       handleMessage(msg.topic, msg.message);
     }
@@ -254,6 +260,33 @@ function updateBrokerButtons() {
   els.disconnectBtn.disabled = !isConnected;
 }
 
+function isConfigComplete() {
+  const brokerReady = els.brokerUrl.value.trim() && els.brokerPort.value.trim();
+  const topicsReady = subscribedTopics.size > 0;
+  return brokerReady && topicsReady && isConnected;
+}
+
+function updateCompactView() {
+  const complete = isConfigComplete();
+  els.brokerSection.hidden = complete;
+  els.topicsSection.hidden = complete;
+  els.logSection.hidden = complete;
+  els.toggleViewBtn.hidden = !complete;
+  els.toggleViewBtn.textContent = els.brokerSection.hidden
+    ? 'Show full dashboard'
+    : 'Show sensor-only view';
+}
+
+function toggleViewMode() {
+  const compact = !!els.brokerSection.hidden;
+  els.brokerSection.hidden = !compact;
+  els.topicsSection.hidden = !compact;
+  els.logSection.hidden = !compact;
+  els.toggleViewBtn.textContent = compact
+    ? 'Show sensor-only view'
+    : 'Show full dashboard';
+}
+
 async function loadBrokerConfig() {
   try {
     const res = await fetch('/api/mqtt/config');
@@ -265,6 +298,7 @@ async function loadBrokerConfig() {
     els.brokerPassword.value = config.password || '';
     isConnected = config.connected;
     updateBrokerButtons();
+    updateCompactView();
   } catch (err) {
     console.error('Failed to load broker config:', err);
   }
@@ -291,9 +325,11 @@ async function handleConnect() {
     updateBrokerButtons();
   } catch (err) {
     console.error('Connect failed:', err);
-    els.status.textContent = `❌ ${err.message}`;
+    const msg = err?.message || 'Incorrect broker settings';
+    els.status.textContent = `❌ ${msg}`;
   } finally {
     updateBrokerButtons();
+    updateCompactView();
   }
 }
 
@@ -310,20 +346,31 @@ async function handleDisconnect() {
     els.status.textContent = `❌ ${err.message}`;
   } finally {
     updateBrokerButtons();
+    updateCompactView();
   }
 }
 
 // ── UI Actions ──────────────────────────────────────────────
 els.connectBtn.addEventListener('click', handleConnect);
 els.disconnectBtn.addEventListener('click', handleDisconnect);
-els.brokerUrl.addEventListener('input', updateBrokerButtons);
-els.brokerPort.addEventListener('input', updateBrokerButtons);
+els.brokerUrl.addEventListener('input', () => {
+  updateBrokerButtons();
+  updateCompactView();
+});
+els.brokerPort.addEventListener('input', () => {
+  updateBrokerButtons();
+  updateCompactView();
+});
+els.brokerUsername.addEventListener('input', updateCompactView);
+els.brokerPassword.addEventListener('input', updateCompactView);
+els.toggleViewBtn.addEventListener('click', toggleViewMode);
 
 els.addTopicBtn.addEventListener('click', () => {
   const topic = els.newTopic.value.trim();
   if (topic) {
     addTopic(topic);
     els.newTopic.value = '';
+    updateCompactView();
   }
 });
 

@@ -96,6 +96,53 @@ function createMqttClient(config) {
   return client;
 }
 
+function connectToBroker(config) {
+  return new Promise(async (resolve, reject) => {
+    await endMqttClient(true);
+    mqttConfig = {
+      url: String(config.url || mqttConfig.url).trim() || mqttConfig.url,
+      port: String(config.port || mqttConfig.port).trim() || mqttConfig.port,
+      username: String(config.username || mqttConfig.username || '').trim(),
+      password: String(config.password || mqttConfig.password || '').trim(),
+    };
+    mqttClient = createMqttClient(mqttConfig);
+
+    const cleanup = () => {
+      mqttClient.removeAllListeners('connect');
+      mqttClient.removeAllListeners('error');
+      mqttClient.removeAllListeners('close');
+    };
+
+    const timeout = setTimeout(() => {
+      cleanup();
+      if (mqttClient && !mqttClient.connected) {
+        reject(new Error('Broker unreachable or incorrect settings'));
+      } else {
+        resolve();
+      }
+    }, 12000);
+
+    mqttClient.once('connect', () => {
+      clearTimeout(timeout);
+      cleanup();
+      resolve();
+    });
+
+    mqttClient.once('error', (err) => {
+      clearTimeout(timeout);
+      cleanup();
+      reject(err || new Error('MQTT connection failed'));
+    });
+    mqttClient.once('close', () => {
+      if (!mqttClient.connected) {
+        clearTimeout(timeout);
+        cleanup();
+        reject(new Error('MQTT connection closed before connecting'));
+      }
+    });
+  });
+}
+
 function getBrokerStatus() {
   return mqttClient && mqttClient.connected ? 'connected' : 'disconnected';
 }
@@ -110,18 +157,6 @@ function endMqttClient(force = true) {
     });
   });
 }
-
-async function connectToBroker(config) {
-  await endMqttClient(true);
-  mqttConfig = {
-    url: String(config.url || mqttConfig.url).trim() || mqttConfig.url,
-    port: String(config.port || mqttConfig.port).trim() || mqttConfig.port,
-    username: String(config.username || mqttConfig.username || '').trim(),
-    password: String(config.password || mqttConfig.password || '').trim(),
-  };
-  mqttClient = createMqttClient(mqttConfig);
-}
-
 mqttClient = createMqttClient(mqttConfig);
 
 app.get('/events', (req, res) => {
@@ -147,10 +182,10 @@ app.get('/api/mqtt/config', (req, res) => {
 app.post('/api/mqtt/connect', async (req, res) => {
   try {
     await connectToBroker(req.body || {});
-    res.json({ ...mqttConfig, connected: getBrokerStatus() === 'connected' });
+    res.json({ ...mqttConfig, connected: true });
   } catch (error) {
     console.error('Failed to connect MQTT broker:', error.message);
-    res.status(500).json({ error: error.message || 'Failed to connect' });
+    res.status(400).json({ error: error.message || 'Incorrect broker settings' });
   }
 });
 
