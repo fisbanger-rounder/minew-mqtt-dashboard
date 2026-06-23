@@ -328,3 +328,68 @@ button:disabled {
 .updating {
   animation: pulse 0.8s ease infinite;
 }
+
+/* ── Graphs Section ──────────────────────────────────────── */
+.graphs-section {
+  margin-bottom: 32px;
+}
+
+.graphs-section > h2 {
+  font-size: 1.3rem;
+  margin-bottom: 16px;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.graph-window-label {
+  font-size: 0.8rem;
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.graphs-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  gap: 16px;
+}
+
+.graph-card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  border: 1px solid #334155;
+  transition: border-color 0.2s, box-shadow 0.3s;
+}
+
+.graph-card:hover {
+  border-color: var(--accent);
+  box-shadow: 0 0 18px rgba(56, 189, 248, 0.08);
+}
+
+.graph-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.graph-card-header h3 {
+  font-size: 0.95rem;
+  color: var(--accent2);
+  font-weight: 600;
+}
+
+.graph-card-header .graph-sensor-id {
+  font-size: 0.7rem;
+  color: var(--muted);
+  background: #0f172a;
+  padding: 2px 8px;
+  border-radius: 999px;
+}
+
+.graph-card canvas {
+  width: 100% !important;
+  height: 180px !important;
+}

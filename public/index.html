@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MQTT Sensor Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -52,6 +53,13 @@
 
     <section class="grid" id="sensorGrid">
       <!-- Sensor cards injected here -->
+    </section>
+
+    <section class="graphs-section" id="graphsSection">
+      <h2>📈 Sensor Graphs <span class="graph-window-label">(10 min window)</span></h2>
+      <div class="graphs-grid" id="graphsGrid">
+        <!-- Chart canvases injected here -->
+      </div>
     </section>
 
     <section class="log" id="logSection">
