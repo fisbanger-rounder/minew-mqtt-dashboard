@@ -39,7 +39,7 @@ npm start
 Then open the dashboard at:
 
 ```text
-http://localhost:3000
+http://localhost:4001
 ```
 
 ## MQTT Broker Configuration

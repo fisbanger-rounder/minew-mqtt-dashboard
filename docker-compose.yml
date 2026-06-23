@@ -3,7 +3,7 @@ services:
     build: .
     container_name: mqtt-dashboard
     ports:
-      - "4000:3000"
+      - "4001:3000"
     environment:
       # Change this to point to your MQTT Broker URL
       - BROKER=mqtt://192.168.68.106:1885
