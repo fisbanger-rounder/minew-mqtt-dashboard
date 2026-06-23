@@ -1,0 +1,23 @@
+name: Deploy MQTT Dashboard
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build & deploy
+        run: |
+          docker compose down
+          docker compose build --no-cache
+          docker compose up -d
+
+      - name: Health check
+        run: |
+          sleep 5
+          curl -sf http://localhost:4001 > /dev/null && echo "✅ Dashboard is live" || echo "❌ Health check failed"
