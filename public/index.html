@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,10 +8,11 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
   <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
   <div class="container">
     <header>
-      <h1>🌡️ MQTT Sensor Dashboard</h1>
+      <h1>MQTT Sensor Dashboard</h1>
       <div class="header-actions">
         <div class="status" id="status">🔴 Disconnected</div>
         <button id="toggleViewBtn" class="compact-toggle" hidden>Show sensor-only view</button>
@@ -56,7 +58,7 @@
     </section>
 
     <section class="graphs-section" id="graphsSection">
-      <h2>📈 Sensor Graphs <span class="graph-window-label">(10 min window)</span></h2>
+      <h2>Sensor Graphs <span class="graph-window-label">(10 min window)</span></h2>
       <div class="graphs-grid" id="graphsGrid">
         <!-- Chart canvases injected here -->
       </div>
@@ -70,4 +72,5 @@
 
   <script type="module" src="app.js"></script>
 </body>
+
 </html>
