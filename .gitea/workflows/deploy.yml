@@ -13,9 +13,9 @@ jobs:
 
       - name: Build & deploy
         run: |
-          docker compose down
-          docker compose build --no-cache
-          docker compose up -d
+          cd /opt/mqtt-dashboard/mqtt-dashboard
+          git pull origin main
+          docker compose up -d --build
 
       - name: Health check
         run: |
