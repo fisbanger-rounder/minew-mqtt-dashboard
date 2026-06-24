@@ -13,7 +13,7 @@ jobs:
 
       - name: Build & deploy
         run: |
-          cd /opt/mqtt-dashboard/mqtt-dashboard
+          cd /opt/mqtt-dashboard
           git pull origin main
           docker compose up -d --build
 
