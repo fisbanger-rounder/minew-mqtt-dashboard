@@ -1,6 +1,7 @@
 const express = require('express');
 const mqtt = require('mqtt');
 const path = require('path');
+const fs = require('fs');
 
 const app = express();
 app.use(express.json());
@@ -15,6 +16,31 @@ let mqttClient = null;
 let isDisconnecting = false;
 const sseClients = new Set();
 const currentTopics = new Set();
+const TOPICS_FILE = path.join(__dirname, 'topics.json');
+
+function loadPersistedTopics() {
+  try {
+    if (!fs.existsSync(TOPICS_FILE)) return;
+    const raw = fs.readFileSync(TOPICS_FILE, 'utf8');
+    const topics = JSON.parse(raw);
+    if (Array.isArray(topics)) {
+      topics.forEach(topic => {
+        if (topic && typeof topic === 'string') currentTopics.add(topic);
+      });
+      console.log('📂 Restored persisted topics:', Array.from(currentTopics));
+    }
+  } catch (err) {
+    console.error('Failed to load persisted topics:', err.message);
+  }
+}
+
+function savePersistedTopics() {
+  try {
+    fs.writeFileSync(TOPICS_FILE, JSON.stringify(Array.from(currentTopics), null, 2));
+  } catch (err) {
+    console.error('Failed to save persisted topics:', err.message);
+  }
+}
 
 function buildInitialConfig() {
   const envBroker = process.env.BROKER || `mqtt://${DEFAULT_BROKER_HOST}:${DEFAULT_BROKER_PORT}`;
@@ -157,6 +183,7 @@ function endMqttClient(force = true) {
     });
   });
 }
+loadPersistedTopics();
 mqttClient = createMqttClient(mqttConfig);
 
 app.get('/events', (req, res) => {
@@ -218,6 +245,7 @@ app.post('/api/topics', (req, res) => {
   });
 
   console.log('Subscribed topics:', Array.from(currentTopics));
+  savePersistedTopics();
   res.json({ subscribed: Array.from(currentTopics) });
 });
 

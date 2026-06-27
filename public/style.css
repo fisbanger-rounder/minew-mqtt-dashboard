@@ -280,6 +280,7 @@ button:disabled {
 .temp { color: var(--danger); }
 .hum  { color: var(--accent); }
 .bat  { color: var(--success); }
+.prox { color: var(--warning); }
 
 .last-seen {
   font-size: 0.75rem;

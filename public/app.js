@@ -61,9 +61,17 @@ function log(topic, payload, ts) {
   if (els.log.children.length > 100) els.log.lastElementChild.remove();
 }
 
-function loadDefaultTopics() {
-  const defaults = [''];
-  defaults.forEach(t => addTopic(t));
+async function loadPersistedTopics() {
+  try {
+    const res = await fetch('/api/topics');
+    const data = await parseResponse(res);
+    if (!res.ok) throw new Error(data.error || 'Failed to load topics');
+    if (Array.isArray(data.subscribed)) {
+      data.subscribed.forEach(topic => addTopic(topic));
+    }
+  } catch (err) {
+    console.error('Failed to load persisted topics:', err);
+  }
 }
 
 function renderTopics() {
@@ -189,8 +197,9 @@ function updateMetric(sensorId, metricKey, value) {
   const unit = guessUnit(metricKey);
   const el = ensureMetricEl(sensorId, metricKey, metricKey, unit);
   const num = parseFloat(value);
+  const isNumeric = !Number.isNaN(num);
 
-  if (!Number.isNaN(num)) {
+  if (isNumeric) {
     el.textContent = Number.isInteger(num) ? num : num.toFixed(2);
   } else {
     el.textContent = value;
@@ -199,25 +208,28 @@ function updateMetric(sensorId, metricKey, value) {
   el.parentElement.classList.add('updating');
   setTimeout(() => el.parentElement.classList.remove('updating'), 800);
 
-  if (metricKey.toLowerCase().includes('bat')) {
+  const lowerKey = metricKey.toLowerCase();
+  if (lowerKey.includes('bat')) {
     const bar = document.getElementById(`bar-${sensorId}`);
-    if (bar) {
+    if (bar && isNumeric) {
       bar.style.width = `${Math.max(0, Math.min(100, num))}%`;
       bar.style.background =
         num > 50 ? 'var(--success)' : num > 20 ? 'var(--warning)' : 'var(--danger)';
     }
     el.classList.add('bat');
-  } else if (metricKey.toLowerCase().includes('temp')) {
+  } else if (lowerKey.includes('temp')) {
     el.classList.add('temp');
-  } else if (metricKey.toLowerCase().includes('hum')) {
+  } else if (lowerKey.includes('hum')) {
     el.classList.add('hum');
+  } else if (lowerKey.includes('prox')) {
+    el.classList.add('prox');
   }
 
   const ls = document.getElementById(`ls-${sensorId}`);
   ls.textContent = `Last seen: ${nowTime()}`;
 
   // ── Push to graph history ──
-  if (!Number.isNaN(num)) {
+  if (isNumeric) {
     pushGraphData(sensorId, metricKey, num);
   }
 }
@@ -388,15 +400,14 @@ function handleMessage(topic, rawPayload) {
     return;
   }
 
-  // Handle user's JSON structure: { ts, data: { mac, rssi, battery, temperature, humidity, ... } }
+  // Handle user's JSON structure: { ts, data: { mac, rssi, battery, temperature, humidity, proximity, ... } }
   const telemetry = payload.data || payload;
 
   Object.entries(telemetry).forEach(([key, value]) => {
-    if (typeof value === 'number') {
-      updateMetric(sensorId, key, value);
-    } else if (typeof value === 'string' && !isNaN(parseFloat(value))) {
-      updateMetric(sensorId, key, parseFloat(value));
-    }
+    if (key.toLowerCase() === 'mac') return; // MAC is already shown as the sensor id
+    if (value === null || value === undefined) return;
+    if (typeof value === 'object') return; // skip nested objects/arrays
+    updateMetric(sensorId, key, value);
   });
 }
 
@@ -559,7 +570,9 @@ els.newTopic.addEventListener('keydown', (e) => {
 });
 
 // Init
-loadBrokerConfig();
-loadDefaultTopics();
-connectSSE();
-syncTopics();
+async function init() {
+  loadBrokerConfig();
+  connectSSE();
+  await loadPersistedTopics();
+}
+init();
