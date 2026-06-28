@@ -236,6 +236,30 @@ function updateMetric(sensorId, metricKey, value) {
     el.classList.add("hum");
   } else if (lowerKey.includes("prox")) {
     el.classList.add("prox");
+  } else if (lowerKey.includes("pres")) {
+    el.classList.add("pres");
+    if (isNumeric) {
+      // Example ranges in hPa — adjust to your needs
+      el.style.color =
+        num < 980
+          ? "var(--danger)"
+          : num < 1000
+            ? "var(--warning)"
+            : num > 1025
+              ? "var(--accent)"
+              : "var(--success)";
+    }
+  } else if (lowerKey.includes("alt")) {
+    el.classList.add("alt");
+    if (isNumeric) {
+      // Example ranges in meters — adjust to your needs
+      el.style.color =
+        num < 100
+          ? "var(--success)"
+          : num < 500
+            ? "var(--warning)"
+            : "var(--danger)";
+    }
   }
 
   const ls = document.getElementById(`ls-${sensorId}`);
