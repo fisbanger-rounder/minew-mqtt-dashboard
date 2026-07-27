@@ -234,6 +234,39 @@ function updateMetric(sensorId, metricKey, value) {
   }
 }
 
+function updateProximity(sensorId, proximity) {
+  const container = document.getElementById(`metrics-${sensorId}`);
+  if (!container) return;
+
+  const id = `prox-${sensorId}`;
+  let badge = document.getElementById(id);
+  if (!badge) {
+    const wrap = document.createElement('div');
+    wrap.className = 'metric';
+    wrap.innerHTML = `
+      <span class="metric-label">proximity</span>
+      <div>
+        <span class="proximity-badge" id="${id}"></span>
+      </div>
+    `;
+    container.appendChild(wrap);
+    badge = document.getElementById(id);
+  }
+
+  badge.textContent = proximity;
+  badge.className = 'proximity-badge';
+  if (proximity === 'Near') {
+    badge.classList.add('prox-near');
+  } else if (proximity === 'Around') {
+    badge.classList.add('prox-around');
+  } else {
+    badge.classList.add('prox-far');
+  }
+
+  badge.parentElement.classList.add('updating');
+  setTimeout(() => badge.parentElement.classList.remove('updating'), 800);
+}
+
 // ── Graph Functions ─────────────────────────────────────────
 function pushGraphData(sensorId, metricKey, value) {
   if (!sensorHistory.has(sensorId)) {
@@ -409,6 +442,20 @@ function handleMessage(topic, rawPayload) {
     if (typeof value === 'object') return; // skip nested objects/arrays
     updateMetric(sensorId, key, value);
   });
+
+  // Derive proximity from RSSI
+  const rssiVal = parseFloat(telemetry.rssi ?? telemetry.RSSI);
+  if (!Number.isNaN(rssiVal)) {
+    let proximity;
+    if (rssiVal > -20) {
+      proximity = 'Near';
+    } else if (rssiVal >= -40) {
+      proximity = 'Around';
+    } else {
+      proximity = 'Far';
+    }
+    updateProximity(sensorId, proximity);
+  }
 }
 
 // ── SSE Connection ──────────────────────────────────────────
