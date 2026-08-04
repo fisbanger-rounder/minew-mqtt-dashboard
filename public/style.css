@@ -18,11 +18,21 @@
     padding: 0;
 }
 
+html {
+    /* Prevent font-size boosting on orientation change (iOS/Android) */
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+}
+
 body {
     font-family: "Segoe UI", system-ui, sans-serif;
     background: var(--bg);
     color: var(--text);
     line-height: 1.5;
+    /* iOS safe-area support */
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    -webkit-overflow-scrolling: touch;
+    overflow-x: hidden;
 }
 
 .container {
@@ -31,10 +41,13 @@ body {
     padding: 24px;
 }
 
+/* ── Header ──────────────────────────────────────────────── */
 header {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
     margin-bottom: 24px;
 }
 
@@ -48,12 +61,14 @@ h1 {
     background: var(--surface);
     font-size: 0.875rem;
     font-weight: 600;
+    white-space: nowrap;
 }
 
 .header-actions {
     display: flex;
     align-items: center;
     gap: 10px;
+    flex-wrap: wrap;
 }
 
 .compact-toggle {
@@ -70,6 +85,7 @@ h1 {
     opacity: 0.95;
 }
 
+/* ── Controls (Broker Form) ──────────────────────────────── */
 .controls {
     display: grid;
     grid-template-columns: repeat(2, minmax(180px, 1fr));
@@ -105,6 +121,8 @@ h1 {
     background: #0f172a;
     color: var(--text);
     font-size: 0.95rem;
+    /* Prevent iOS zoom on focus */
+    font-size: max(0.95rem, 16px);
 }
 
 #connectBtn {
@@ -123,6 +141,8 @@ button {
     border-radius: 8px;
     cursor: pointer;
     font-weight: 600;
+    /* Minimum touch target for mobile (44×44 per Apple HIG) */
+    min-height: 44px;
     transition:
         transform 0.1s,
         opacity 0.2s;
@@ -137,6 +157,7 @@ button:disabled {
     cursor: not-allowed;
 }
 
+/* ── Topics ──────────────────────────────────────────────── */
 .topics {
     margin-bottom: 24px;
     background: var(--surface);
@@ -170,11 +191,15 @@ button:disabled {
     background: #0f172a;
     color: var(--text);
     font-size: 0.9rem;
+    /* Prevent iOS zoom on focus */
+    font-size: max(0.9rem, 16px);
+    min-width: 0; /* prevent flex overflow */
 }
 
 #addTopicBtn {
     background: var(--accent2);
     color: #0f172a;
+    white-space: nowrap;
 }
 
 .topic-tags {
@@ -194,6 +219,11 @@ button:disabled {
     align-items: center;
     gap: 6px;
     border: 1px solid #334155;
+    /* Prevent long topics from breaking layout */
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    word-break: break-all;
 }
 
 .tag-remove {
@@ -205,12 +235,20 @@ button:disabled {
     line-height: 1;
     cursor: pointer;
     border-radius: 4px;
+    min-height: unset;
+    /* Larger touch target */
+    min-width: 32px;
+    min-height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .tag-remove:hover {
     color: var(--danger);
 }
 
+/* ── Sensor Grid ─────────────────────────────────────────── */
 .grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
@@ -237,6 +275,7 @@ button:disabled {
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 8px;
 }
 
 .card-header h3 {
@@ -250,12 +289,18 @@ button:disabled {
     background: #0f172a;
     padding: 2px 8px;
     border-radius: 999px;
+    /* Prevent overflow on small cards */
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 60%;
 }
 
 .metric {
     display: flex;
     align-items: baseline;
     justify-content: space-between;
+    gap: 8px;
 }
 
 .metric-label {
@@ -345,6 +390,7 @@ button:disabled {
     border-top: 1px solid #334155;
 }
 
+/* ── MQTT Log ────────────────────────────────────────────── */
 .log {
     background: var(--surface);
     border-radius: var(--radius);
@@ -363,6 +409,8 @@ button:disabled {
     overflow-y: auto;
     font-family: ui-monospace, monospace;
     font-size: 0.8rem;
+    /* Smooth scrolling on iOS */
+    -webkit-overflow-scrolling: touch;
 }
 
 #mqttLog li {
@@ -375,13 +423,18 @@ button:disabled {
 #mqttLog .time {
     color: var(--muted);
     min-width: 60px;
+    flex-shrink: 0;
 }
 #mqttLog .topic {
     color: var(--accent);
     min-width: 180px;
+    flex-shrink: 0;
 }
 #mqttLog .payload {
     color: var(--text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 @keyframes pulse {
@@ -463,4 +516,249 @@ button:disabled {
 .graph-card canvas {
     width: 100% !important;
     height: 180px !important;
+}
+
+/* ════════════════════════════════════════════════════════════
+   RESPONSIVE — TABLET (≤ 768px)
+   ════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+    .container {
+        padding: 16px;
+    }
+
+    h1 {
+        font-size: 1.35rem;
+    }
+
+    /* Stack controls to single column */
+    .controls {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .button-group {
+        grid-column: span 1;
+        flex-wrap: wrap;
+    }
+
+    .button-group button {
+        flex: 1;
+        min-width: 120px;
+    }
+
+    /* Graphs grid — allow narrower cards */
+    .graphs-grid {
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    }
+
+    /* Log entries — allow topic to shrink */
+    #mqttLog .topic {
+        min-width: 120px;
+    }
+}
+
+/* ════════════════════════════════════════════════════════════
+   RESPONSIVE — MOBILE (≤ 480px)
+   ════════════════════════════════════════════════════════════ */
+@media (max-width: 480px) {
+    .container {
+        padding: 12px;
+    }
+
+    /* Header stacks vertically on narrow phones */
+    header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+
+    h1 {
+        font-size: 1.2rem;
+    }
+
+    .header-actions {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    /* Controls single-column already from 768 breakpoint */
+    .controls {
+        padding: 12px;
+    }
+
+    .controls input {
+        padding: 12px;
+    }
+
+    /* Topic editor stacks on very small screens */
+    .topic-editor {
+        flex-direction: column;
+    }
+
+    .topic-editor input {
+        width: 100%;
+    }
+
+    #addTopicBtn {
+        width: 100%;
+    }
+
+    /* Sensor grid — single column on phones */
+    .grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .card {
+        padding: 16px;
+    }
+
+    .metric-value {
+        font-size: 1.3rem;
+    }
+
+    /* Graphs — single column, reduced height */
+    .graphs-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .graph-card {
+        padding: 12px;
+    }
+
+    .graph-card canvas {
+        height: 150px !important;
+    }
+
+    /* Log — stack log entries vertically for readability */
+    #mqttLog li {
+        flex-direction: column;
+        gap: 2px;
+        padding: 6px 0;
+    }
+
+    #mqttLog .time {
+        min-width: unset;
+        font-size: 0.7rem;
+    }
+
+    #mqttLog .topic {
+        min-width: unset;
+        font-size: 0.75rem;
+        word-break: break-all;
+    }
+
+    #mqttLog .payload {
+        white-space: normal;
+        word-break: break-all;
+        font-size: 0.75rem;
+    }
+
+    /* Buttons — full width for better tap targets */
+    .button-group {
+        flex-direction: column;
+    }
+
+    .button-group button {
+        width: 100%;
+    }
+
+    /* Compact toggle full width */
+    .compact-toggle {
+        width: 100%;
+        text-align: center;
+    }
+
+    /* Section spacing tighter */
+    .topics,
+    .log {
+        padding: 12px;
+    }
+
+    .graphs-section > h2 {
+        font-size: 1.1rem;
+        flex-wrap: wrap;
+    }
+}
+
+/* ════════════════════════════════════════════════════════════
+   RESPONSIVE — VERY SMALL PHONES (≤ 360px)
+   ════════════════════════════════════════════════════════════ */
+@media (max-width: 360px) {
+    .container {
+        padding: 8px;
+    }
+
+    h1 {
+        font-size: 1.05rem;
+    }
+
+    .status {
+        font-size: 0.75rem;
+        padding: 4px 10px;
+    }
+
+    .card-header h3 {
+        font-size: 0.95rem;
+    }
+
+    .sensor-id {
+        font-size: 0.65rem;
+    }
+
+    .metric-value {
+        font-size: 1.15rem;
+    }
+
+    .graph-card canvas {
+        height: 130px !important;
+    }
+}
+
+/* ════════════════════════════════════════════════════════════
+   LANDSCAPE MODE — ensure usability in landscape on phones
+   ════════════════════════════════════════════════════════════ */
+@media (max-height: 500px) and (orientation: landscape) {
+    .container {
+        padding: 8px 16px;
+    }
+
+    header {
+        margin-bottom: 12px;
+    }
+
+    .controls {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+        margin-bottom: 12px;
+    }
+
+    .button-group {
+        grid-column: span 2;
+        flex-direction: row;
+    }
+
+    .button-group button {
+        width: auto;
+        flex: 1;
+    }
+
+    .grid {
+        grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+        gap: 10px;
+        margin-bottom: 16px;
+    }
+
+    .graphs-grid {
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    }
+
+    .graph-card canvas {
+        height: 140px !important;
+    }
+
+    #mqttLog {
+        max-height: 160px;
+    }
 }
